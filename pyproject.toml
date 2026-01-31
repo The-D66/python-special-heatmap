@@ -1,6 +1,6 @@
 [project]
 name = "special-heatmap"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Python reproduction of the MATLAB Special Heatmap project."
 readme = "README.md"
 authors = [
@@ -12,6 +12,11 @@ dependencies = [
     "matplotlib>=3.10.8",
     "numpy>=2.2.6",
 ]
+
+[project.urls]
+Homepage = "https://github.com/The-D66/python-special-heatmap"
+Repository = "https://github.com/The-D66/python-special-heatmap"
+Issues = "https://github.com/The-D66/python-special-heatmap/issues"
 
 [build-system]
 requires = ["hatchling"]

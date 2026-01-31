@@ -235,14 +235,19 @@ class SHeatmap:
                 final_ticks = [self.vmin, self.vmax]
                 for t in current_ticks:
                     # Keep ticks that are not too close to vmin/vmax
-                    # AND ensure we don't duplicate ticks that are effectively equal
                     if abs(t - self.vmin) > threshold and abs(t - self.vmax) > threshold:
                         final_ticks.append(t)
                 
                 final_ticks = sorted(list(set(final_ticks)))
                 cbar.set_ticks(final_ticks)
-                # Format to 2 decimal places to be safe and clean
-                cbar.set_ticklabels([f"{x:.2f}" for x in final_ticks])
+                
+                # Smart formatting for ticks
+                def format_tick(x):
+                    if abs(x) < 1e-10: return "0"
+                    if abs(x) >= 0.01: return f"{x:.2f}"
+                    return f"{x:.2e}"
+                
+                cbar.set_ticklabels([format_tick(x) for x in final_ticks])
         
         return self
 

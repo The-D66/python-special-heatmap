@@ -234,6 +234,10 @@ class SHeatmap:
                 
                 final_ticks = [self.vmin, self.vmax]
                 for t in current_ticks:
+                    # Filter out ticks that are OUTSIDE the data range (with small tolerance)
+                    if t < self.vmin - 1e-9 or t > self.vmax + 1e-9:
+                        continue
+                        
                     # Keep ticks that are not too close to vmin/vmax
                     if abs(t - self.vmin) > threshold and abs(t - self.vmax) > threshold:
                         final_ticks.append(t)

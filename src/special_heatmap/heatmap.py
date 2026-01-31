@@ -73,7 +73,7 @@ class SHeatmap:
         """
         self.type = type_str
 
-    def draw(self):
+    def draw(self, colorbar=True, colorbar_loc='right', colorbar_size="5%", colorbar_pad=0.1, mark_extremes=True):
         if self.ax is None:
             fig, self.ax = plt.subplots(figsize=(8, 8))
         
@@ -211,9 +211,35 @@ class SHeatmap:
 
 
         # Colorbar
-        sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=norm)
-        sm.set_array([])
-        plt.colorbar(sm, ax=self.ax)
+        if colorbar:
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(self.ax)
+            
+            if colorbar_loc in ['right', 'left']:
+                orientation = 'vertical'
+            else:
+                orientation = 'horizontal'
+            
+            cax = divider.append_axes(colorbar_loc, size=colorbar_size, pad=colorbar_pad)
+            
+            sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=norm)
+            sm.set_array([])
+            cbar = plt.colorbar(sm, cax=cax, orientation=orientation)
+            
+            if mark_extremes:
+                # Add explicit ticks for vmin and vmax
+                current_ticks = cbar.get_ticks()
+                data_range = self.vmax - self.vmin
+                threshold = data_range * 0.05 # 5% threshold to merge ticks
+                
+                final_ticks = [self.vmin, self.vmax]
+                for t in current_ticks:
+                    # Keep ticks that are not too close to vmin/vmax
+                    if abs(t - self.vmin) > threshold and abs(t - self.vmax) > threshold:
+                        final_ticks.append(t)
+                
+                final_ticks = sorted(list(set(final_ticks)))
+                cbar.set_ticks(final_ticks)
         
         return self
 

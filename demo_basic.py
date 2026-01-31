@@ -13,7 +13,7 @@ def demo_basic_positive():
     data = np.random.rand(15, 15)
     shm = SHeatmap(data, fmt='sq')
     shm.draw()
-    plt.title('Basic Positive')
+    # plt.title('Basic Positive')
     plt.savefig('gallery/Basic_positive.png', bbox_inches='tight', dpi=150)
     plt.close()
 
@@ -23,7 +23,7 @@ def demo_basic_negative():
     data = np.random.rand(15, 15) - 0.5
     shm = SHeatmap(data, fmt='sq')
     shm.draw()
-    plt.title('Basic Negative')
+    # plt.title('Basic Negative')
     plt.savefig('gallery/Basic_negative.png', bbox_inches='tight', dpi=150)
     plt.close()
 
@@ -40,7 +40,7 @@ def demo_formats():
         plt.figure()
         shm = SHeatmap(data_a, fmt=fmt)
         shm.draw()
-        plt.title(f'Format {fmt} (Positive)')
+        # plt.title(f'Format {fmt} (Positive)')
         plt.savefig(f'gallery/Format_{fmt}_A.png', bbox_inches='tight', dpi=150)
         plt.close()
         
@@ -48,7 +48,7 @@ def demo_formats():
         plt.figure()
         shm = SHeatmap(data_b, fmt=fmt)
         shm.draw()
-        plt.title(f'Format {fmt} (Mixed)')
+        # plt.title(f'Format {fmt} (Mixed)')
         plt.savefig(f'gallery/Format_{fmt}_B.png', bbox_inches='tight', dpi=150)
         plt.close()
 
@@ -64,7 +64,7 @@ def demo_text_nan():
     shm = SHeatmap(data, fmt='sq')
     shm.draw()
     shm.set_text(fontsize=8, color='black') # Simple black text
-    plt.title('Basic with Text and NaN')
+    # plt.title('Basic with Text and NaN')
     plt.savefig('gallery/Basic_with_text.png', bbox_inches='tight', dpi=150)
     plt.close()
 
@@ -80,7 +80,7 @@ def demo_triangle():
         shm.set_type(t)
         shm.draw()
         shm.set_text(fontsize=6, color='black')
-        plt.title(f'Triangular: {t}')
+        # plt.title(f'Triangular: {t}')
         plt.savefig(f'gallery/Type_{t}.png', bbox_inches='tight', dpi=150)
         plt.close()
 

@@ -5,10 +5,14 @@ import matplotlib.colors as mcolors
 from matplotlib.collections import PatchCollection
 
 class SHeatmap:
-    def __init__(self, data, fmt='sq', parent=None, cmap=None):
+    def __init__(self, data, fmt='sq', parent=None, cmap=None, sdata=None):
         self.data = np.array(data)
         self.fmt = fmt
         self.ax = parent
+        self.sdata = np.array(sdata) if sdata is not None else None
+        self.text_handles = {} # To store text objects for show_stars and set_text_mn
+        self.patch_handles = {} # To store patch objects for set_patch and set_patch_mn
+        self.box_handle = None # To store the box/frame
         
         # Default Colors (copied from SHeatmap.m)
         # Sequential (Greens)
@@ -43,16 +47,6 @@ class SHeatmap:
             self.vmin, self.vmax = -self.max_v, self.max_v
             self.cmap_name = 'SHeatmap_Diverging'
         else:
-            # Sequential (Reversed dfColor1 to match SHeatmap logic: Light -> Dark or Dark -> Light?)
-            # SHeatmap.m: obj.dfColor1(end:-1:1,:)
-            # dfColor1 last row is dark green (0.03...). First row is light (0.96...).
-            # Reversing it puts Dark at index 1 and Light at index End.
-            # So Low Values = Dark, High Values = Light.
-            # This is slightly unusual for standard heatmaps (usually High=Dark/Intense).
-            # Let's double check MATLAB behavior.
-            # colormap(map). Data maps to map.
-            # If map is [Dark ... Light]. Low data = Dark. High data = Light.
-            # Let's stick to the code.
             self.colormap_data = self.dfColor1[::-1] 
             self.vmin, self.vmax = 0, self.max_v
             self.cmap_name = 'SHeatmap_Sequential'
@@ -89,9 +83,6 @@ class SHeatmap:
         self.ax.set_yticklabels(np.arange(1, rows + 1))
         self.ax.tick_params(top=False, bottom=True, labeltop=False, labelbottom=True)
         
-        # Grid/Box
-        # self.ax.grid(True, color='0.85', linestyle='-', linewidth=0.8)
-        
         norm = mcolors.Normalize(vmin=self.vmin, vmax=self.vmax)
         
         for r in range(rows):
@@ -115,11 +106,8 @@ class SHeatmap:
                 cx, cy = c + 0.5, r + 0.5
                 
                 if np.isnan(val):
-                    # Draw X for NaN
-                    # Gray background
                     rect = patches.Rectangle((c, r), 1, 1, facecolor='0.8', edgecolor='none')
                     self.ax.add_patch(rect)
-                    # X text
                     self.ax.text(cx, cy, '×', ha='center', va='center', fontsize=16, fontname='Times New Roman')
                     continue
                 
@@ -129,86 +117,119 @@ class SHeatmap:
                 patch = None
                 
                 if self.fmt == 'sq':
-                    # Square filling the cell
                     patch = patches.Rectangle((c + 0.01, r + 0.01), 0.98, 0.98, facecolor=color, edgecolor='none')
                     self.ax.add_patch(patch)
                     
                 elif self.fmt == 'asq':
-                    # Auto-size Square
                     size = 0.98 * t_ratio
                     offset = (1 - size) / 2
                     patch = patches.Rectangle((c + offset, r + offset), size, size, facecolor=color, edgecolor='none')
                     self.ax.add_patch(patch)
                     
                 elif self.fmt == 'circ':
-                    # Circle
-                    radius = 0.92 * 0.5 # 0.46
+                    radius = 0.92 * 0.5
                     patch = patches.Circle((cx, cy), radius, facecolor=color, edgecolor='none')
                     self.ax.add_patch(patch)
                     
                 elif self.fmt == 'acirc':
-                    # Auto-size Circle
                     radius = 0.92 * 0.5 * t_ratio
                     patch = patches.Circle((cx, cy), radius, facecolor=color, edgecolor='none')
                     self.ax.add_patch(patch)
                 
-                elif self.fmt == 'pie':
-                    # Pie Chart
-                    # Background circle (white/outline)
+                elif self.fmt == 'bcirc':
                     bg_radius = 0.92 * 0.5
                     bg_circ = patches.Circle((cx, cy), bg_radius, facecolor='white', edgecolor='0.3', linewidth=0.8)
                     self.ax.add_patch(bg_circ)
-                    
-                    # Wedge
-                    # Matplotlib wedge: theta1, theta2 in degrees.
-                    # MATLAB: linspace(pi/2, pi/2 + ratio*2pi). 
-                    # 90 degrees start.
+                    radius = 0.92 * 0.5 * t_ratio
+                    patch = patches.Circle((cx, cy), radius, facecolor=color, edgecolor='none')
+                    self.ax.add_patch(patch)
+
+                elif self.fmt == 'pie':
+                    bg_radius = 0.92 * 0.5
+                    bg_circ = patches.Circle((cx, cy), bg_radius, facecolor='white', edgecolor='0.3', linewidth=0.8)
+                    self.ax.add_patch(bg_circ)
                     theta1 = 90
-                    theta2 = 90 + (val / self.max_v) * 360 # Assuming positive ratio for simplicity or mapping logic
-                    
-                    # If val is negative in pie? SHeatmap uses obj.Data(row,col) directly.
-                    # If val is negative, theta2 < theta1.
-                    
+                    theta2 = 90 + (val / self.max_v) * 360
                     wedge = patches.Wedge((cx, cy), bg_radius, theta1, theta2, facecolor=color, edgecolor='0.3', linewidth=0.8)
                     self.ax.add_patch(wedge)
 
+                elif self.fmt == 'donut':
+                    # Donut chart is essentially a wedge with a width
+                    bg_radius = 0.92 * 0.5
+                    width = bg_radius * 0.5
+                    bg_wedge = patches.Wedge((cx, cy), bg_radius, 0, 360, width=width, facecolor='white', edgecolor='0.3', linewidth=0.8)
+                    self.ax.add_patch(bg_wedge)
+                    theta1 = 90
+                    theta2 = 90 + (val / self.max_v) * 360
+                    wedge = patches.Wedge((cx, cy), bg_radius, theta1, theta2, width=width, facecolor=color, edgecolor='0.3', linewidth=0.8)
+                    self.ax.add_patch(wedge)
+
                 elif self.fmt == 'hex':
-                    # Hexagon
-                    # RegularPolygon takes radius (distance to vertex).
-                    # Width of cell is 1. Radius approx 0.5.
                     radius = 0.5 * 0.98 * t_ratio
-                    # Orientation: MATLAB uses flat top or pointy top? 
-                    # MATLAB cos(hexT) where hexT=linspace(0, 2pi, 7). 0 is (1,0) (Right).
-                    # So vertices at 0, 60, 120... Pointy on right/left?
-                    # Matplotlib RegularPolygon orientation is rotation in radians.
                     poly = patches.RegularPolygon((cx, cy), numVertices=6, radius=radius, 
                                                   orientation=0, facecolor=color, edgecolor='0.3', linewidth=0.8)
                     self.ax.add_patch(poly)
 
                 elif self.fmt == 'oval':
-                    # Oval (Ellipse)
-                    # SHeatmap logic:
-                    # tValue = val/maxV
-                    # baseA = 1 + (tValue<=0)*tValue  (If neg, shrinks width?)
-                    # baseB = 1 - (tValue>=0)*tValue  (If pos, shrinks height?)
-                    # This logic seems to make it "fat" or "tall" based on sign?
-                    # Let's approximate:
-                    # width = 0.98 * baseA
-                    # height = 0.98 * baseB
-                    
-                    # Implementation:
                     t_val = val / self.max_v
                     base_a = 1 + t_val if t_val <= 0 else 1
                     base_b = 1 - t_val if t_val >= 0 else 1
-                    
-                    # Rotated 45 degrees?
-                    # MATLAB: thetaMat = [1 -1; 1 1]*sqrt(2)/2 (Rotation 45 deg)
-                    # baseOvalXY = thetaMat * [baseOvalX; baseOvalY]
-                    
                     ellipse = patches.Ellipse((cx, cy), width=base_a*0.9, height=base_b*0.9, angle=45,
                                               facecolor=color, edgecolor='0.3', linewidth=0.8)
                     self.ax.add_patch(ellipse)
 
+                elif self.fmt == 'star':
+                    tValue = val / self.max_v
+                    # MATLAB: linspace(0,2*pi,11)+pi/10. Alternating radius.
+                    angles = np.linspace(0, 2*np.pi, 11) + np.pi/10
+                    radii = np.ones(11) * 0.92 * 0.5 * tValue
+                    radii[1::2] = radii[1::2] * 0.5
+                    x = radii * np.cos(angles) + cx
+                    y = radii * np.sin(angles) + cy
+                    poly = patches.Polygon(np.column_stack([x, y]), closed=True, facecolor=color, edgecolor='0.3', linewidth=0.8)
+                    self.ax.add_patch(poly)
+
+                elif self.fmt in ['tril', 'trill']:
+                    poly = patches.Polygon(np.array([[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5]]) + [cx, cy], 
+                                           closed=True, facecolor=color, edgecolor='none', linewidth=0.8)
+                    self.ax.add_patch(poly)
+                    
+                elif self.fmt in ['triu', 'triur']:
+                    poly = patches.Polygon(np.array([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5]]) + [cx, cy], 
+                                           closed=True, facecolor=color, edgecolor='none', linewidth=0.8)
+                    self.ax.add_patch(poly)
+
+                elif self.fmt == 'triul':
+                    poly = patches.Polygon(np.array([[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5]]) + [cx, cy], 
+                                           closed=True, facecolor=color, edgecolor='none', linewidth=0.8)
+                    self.ax.add_patch(poly)
+
+                elif self.fmt == 'trilr':
+                    poly = patches.Polygon(np.array([[-0.5, 0.5], [0.5, 0.5], [0.5, -0.5]]) + [cx, cy], 
+                                           closed=True, facecolor=color, edgecolor='none', linewidth=0.8)
+                    self.ax.add_patch(poly)
+
+                elif self.fmt == 'cust' and self.sdata is not None:
+                    # sdata assumed to be shape (2, N) or (N, 2). Let's accept (N, 2)
+                    if self.sdata.shape[0] == 2:
+                        sdata_xy = self.sdata.T
+                    else:
+                        sdata_xy = self.sdata
+                    # MATLAB inverts Y: -obj.SData(2,:)
+                    sdata_xy_adj = sdata_xy.copy()
+                    sdata_xy_adj[:, 1] = -sdata_xy_adj[:, 1]
+                    poly = patches.Polygon(sdata_xy_adj + [cx, cy], closed=True, facecolor=color, edgecolor='0.3', linewidth=0.8)
+                    self.ax.add_patch(poly)
+
+                elif self.fmt == 'acust' and self.sdata is not None:
+                    if self.sdata.shape[0] == 2:
+                        sdata_xy = self.sdata.T
+                    else:
+                        sdata_xy = self.sdata
+                    sdata_xy_adj = sdata_xy.copy()
+                    sdata_xy_adj[:, 1] = -sdata_xy_adj[:, 1]
+                    poly = patches.Polygon((sdata_xy_adj * t_ratio) + [cx, cy], closed=True, facecolor=color, edgecolor='0.3', linewidth=0.8)
+                    self.ax.add_patch(poly)
 
         # Colorbar
         if colorbar:
@@ -227,25 +248,20 @@ class SHeatmap:
             cbar = plt.colorbar(sm, cax=cax, orientation=orientation)
             
             if mark_extremes:
-                # Add explicit ticks for vmin and vmax
                 current_ticks = cbar.get_ticks()
                 data_range = self.vmax - self.vmin
-                threshold = data_range * 0.05 # 5% threshold to merge ticks
+                threshold = data_range * 0.05
                 
                 final_ticks = [self.vmin, self.vmax]
                 for t in current_ticks:
-                    # Filter out ticks that are OUTSIDE the data range (with small tolerance)
                     if t < self.vmin - 1e-9 or t > self.vmax + 1e-9:
                         continue
-                        
-                    # Keep ticks that are not too close to vmin/vmax
                     if abs(t - self.vmin) > threshold and abs(t - self.vmax) > threshold:
                         final_ticks.append(t)
                 
                 final_ticks = sorted(list(set(final_ticks)))
                 cbar.set_ticks(final_ticks)
                 
-                # Smart formatting for ticks
                 def format_tick(x):
                     if abs(x) < 1e-10: return "0"
                     if abs(x) >= 0.01: return f"{x:.2f}"
@@ -259,7 +275,6 @@ class SHeatmap:
         rows, cols = self.data.shape
         for r in range(rows):
             for c in range(cols):
-                # Visibility Logic
                 visible = True
                 if self.type == 'triu':
                     if c < r: visible = False
@@ -277,15 +292,34 @@ class SHeatmap:
                 if np.isnan(val):
                     continue
                 
-                # Determine text color based on background brightness
-                # Simple heuristic: if abs(val) is high, bg is dark -> white text.
-                # But our colormap logic might be reversed?
-                # Let's just default to black/white threshold.
-                # For now, just black or passed kwargs.
-                
                 s = fmt.format(val)
                 cx, cy = c + 0.5, r + 0.5
-                self.ax.text(cx, cy, s, ha='center', va='center', **kwargs)
+                text_obj = self.ax.text(cx, cy, s, ha='center', va='center', **kwargs)
+                self.text_handles[(r, c)] = text_obj
+
+    def show_stars(self, pval, levels=None, corr_label=True):
+        if levels is None:
+            levels = [0.05, 0.01, 0.001]
+        
+        rows, cols = self.data.shape
+        for r in range(rows):
+            for c in range(cols):
+                if np.isnan(self.data[r, c]):
+                    continue
+                
+                p = pval[r, c]
+                num_stars = sum(p < lvl for lvl in levels)
+                stars_str = '*' * num_stars
+                
+                if (r, c) in self.text_handles:
+                    text_obj = self.text_handles[(r, c)]
+                    if corr_label:
+                        old_str = text_obj.get_text()
+                        # Use newline to simulate MATLAB's cell array multi-line text
+                        new_str = f"{stars_str}\n{old_str}" if stars_str else old_str
+                        text_obj.set_text(new_str)
+                    else:
+                        text_obj.set_text(stars_str)
 
 if __name__ == '__main__':
     # Simple self-test

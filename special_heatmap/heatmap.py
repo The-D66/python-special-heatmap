@@ -297,6 +297,28 @@ class SHeatmap:
                 text_obj = self.ax.text(cx, cy, s, ha='center', va='center', **kwargs)
                 self.text_handles[(r, c)] = text_obj
 
+    def set_patch(self, **kwargs):
+        """Apply kwargs to all drawn patches (e.g., edgecolor, linewidth)"""
+        for patches_list in self.patch_handles.values():
+            for p in patches_list:
+                p.set(**kwargs)
+
+    def set_patch_mn(self, r, c, **kwargs):
+        """Apply kwargs to a specific cell's patch. Note: r, c are 0-based indices."""
+        if (r, c) in self.patch_handles:
+            for p in self.patch_handles[(r, c)]:
+                p.set(**kwargs)
+
+    def set_text_mn(self, r, c, **kwargs):
+        """Apply kwargs to a specific cell's text. Note: r, c are 0-based indices."""
+        if (r, c) in self.text_handles:
+            self.text_handles[(r, c)].set(**kwargs)
+
+    def set_box(self, **kwargs):
+        """Apply kwargs to the outer bounding box."""
+        if self.box_handle is not None:
+            self.box_handle.set(**kwargs)
+
     def show_stars(self, pval, levels=None, corr_label=True):
         if levels is None:
             levels = [0.05, 0.01, 0.001]

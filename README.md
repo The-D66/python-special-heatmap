@@ -138,7 +138,24 @@ plt.show()
 | **triu0** | ![triu0](gallery/Type_triu0.png) |
 | **tril0** | ![tril0](gallery/Type_tril0.png) |
 
-### 5. 开源协议 / License
+### 6. 树状图与聚类色块 / Dendrogram and Grouping
+
+新增了对 `SDendrogram` 和 `SClusterBlock` 的支持，以实现热图边缘的高级注释。
+
+```python
+from special_heatmap import SDendrogram, SClusterBlock
+
+# 请参考源代码 tests/test_gallery.py 中的具体实现示例
+```
+
+| Feature | Result |
+| :---: | :---: |
+| **Tree** (Dendrogram) | ![Tree](gallery/Tree.png) |
+| **Group** (Cluster Block) | ![Group](gallery/Group.png) |
+| **Multilayer** (Nested Group) | ![Multilayer](gallery/Multilayer.png) |
+| **Tree & Group** | ![TreeGroup](gallery/TreeGroup.png) |
+
+### 7. 开源协议 / License
 
 本项目采用 **GPL v2** 开源协议。详细内容请参阅 [LICENSE](LICENSE) 文件。
 This project is licensed under the **GPL v2 License**. See the [LICENSE](LICENSE) file for details.
